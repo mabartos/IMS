@@ -12,9 +12,9 @@ double hash_rate = 88092000; // TH/s
 double difficulty = hash_rate * 512; // avg of TH per block
 double consumption_per_petahash = 56; // Ws
 const double transaction_rate = 2;
-double average_power_of_asic = 1596; // Wh
+double average_power_of_asic = 1596.0 / 3600; // Ws
 double average_hash_power_of_asic = 28; // TH/s
-double average_footprint; // kg CO2 / Wh
+double average_footprint; // kg CO2 / Ws
 
 unsigned long transaction_count = 0;
 unsigned long blocks_count = 0;
@@ -27,18 +27,21 @@ double asia = .68;
 double europe = .17;
 double america = .15;
 
-double coal = asia * .60 + america * .27 + europe * .19;
-double crude_oil = asia * .18 + america * .37 + europe * .01;
-double renewables = asia * .14 + america * .1 + europe * .32;
-double nuclear = asia * .2 + america * .19 + europe * .25;
-double gas = asia * .4 + america * .35 + europe * .19;
+double coal = asia * .60 + america * .131 + europe * .19;
+double crude_oil = asia * .18 + america * .365 + europe * .01;
+double renewables = asia * .14 + america * .115 + europe * .32;
+double nuclear = asia * .2 + america * .86 + europe * .25;
+double gas = asia * .4 + america * .306 + europe * .19;
 
-// kg CO2 / Wh
-const double carbon_footprint_of_coal = 900;
-const double carbon_footprint_of_crude_oil = 650;
-const double carbon_footprint_of_renewables = 10;
-const double carbon_footprint_of_nuclear = 5;
-const double carbon_footprint_of_gas = 50;
+// kg CO2 / Ws
+
+const double milli = .001;
+
+const double carbon_footprint_of_coal = milli * 993 / 3600;
+const double carbon_footprint_of_crude_oil = milli * 893 / 3600;
+const double carbon_footprint_of_renewables = milli * 642 / 3600;
+const double carbon_footprint_of_nuclear = milli * 62 / 3600;
+const double carbon_footprint_of_gas = milli * 455 / 3600;
 
 // queue of transactions before being added to a block
 Store block("Block", BLOCK_CAPACITY);
@@ -144,16 +147,16 @@ class BlockProcess : public Process {
     void CalculateConsumption() {
         // std::cout << "count: " << hash_rate / average_hash_power_of_asic << "\npow of asic: " << average_power_of_asic << "\n";
         // printf("(%.2f * %.2f) * %.2f / %ld = %.2f\n", hash_rate / average_hash_power_of_asic, average_power_of_asic / 3600, time, transactions, hash_rate / average_hash_power_of_asic * average_power_of_asic / 3600 * time / transactions);
-        double consumption_per_sec = (hash_rate / average_hash_power_of_asic) * average_power_of_asic / 3600;
+        double consumption_per_sec = (hash_rate / average_hash_power_of_asic) * average_power_of_asic;
         double consumption_per_block = consumption_per_sec * time;
         double consumption_per_transaction = consumption_per_block / transactions;
-        // std::cout << consumption * time / transactions << "\n";
+        // std::cout << consumption_per_transaction << "\n";
 
-        double carbon_footprint_per_sec = consumption_per_sec * average_footprint / 3600;
+        double carbon_footprint_per_sec = consumption_per_sec * average_footprint;
         double carbon_footprint_per_block = consumption_per_block * average_footprint;
         double carbon_footprint_per_transaction = consumption_per_transaction * average_footprint;
-        std::cout << carbon_footprint_per_transaction / 3600 << "\n";
-        std::cout << consumption_per_transaction << "\n";
+        // std::cout << carbon_footprint_per_transaction << "\n";
+        std::cout << carbon_footprint_per_transaction << "\n";
     }
 };
 
