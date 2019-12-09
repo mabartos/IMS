@@ -197,10 +197,7 @@ enum power_source {
     ASIC_POWER,
     ASIC_HASH_POWER,
     HASH_RATE,
-    ASIA_ENERGY_PRODUCTION,
-    AMERICA_ENERGY_PRODUCTION,
-    EUROPE_ENERGY_PRODUCTION,
-
+    
     ASIA_COAL,
     ASIA_CRUDE_OIL,
     ASIA_RENEWABLES,
@@ -340,6 +337,8 @@ int main(int argc, char **argv) {
     powerSource.setAsicHashPower(4.2438);
     powerSource.setAsicPower(1535.62);
     powerSource.setHashRate(35036000);
+    
+    parseArgs(argc, argv);
 
     averageFootprint =
         powerSource.getCoalTotal() * carbon_footprint_of_coal +
@@ -348,7 +347,6 @@ int main(int argc, char **argv) {
         powerSource.getNuclearTotal() * carbon_footprint_of_nuclear +
         powerSource.getGasTotal() * carbon_footprint_of_gas;
 
-    parseArgs(argc, argv);
 
     difficulty = powerSource.hash_rate * 512;
 
