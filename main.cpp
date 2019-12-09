@@ -79,16 +79,23 @@ public:
     }
 
     void runExperiment1(){
-
+        asia_production=.20;
+        europe_production=.63;
     }
 
     void runExperiment2(){
-        asia_coal=0.1;
-        asia_renewables=0.64;
+        asia_coal=.1;
+        asia_renewables=.64;
     }
 
     void runExperiment3(){
+        asia_coal=0;
+        america_coal=0;
+        europe_coal=0;
 
+        asia_renewables=.74;
+        america_renewables=.246;
+        europe_renewables=.51;
     }
 };
 
