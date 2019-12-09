@@ -23,6 +23,7 @@ public:
 
     double asic_power; // Ws
     double asic_hash_power; //TH/s
+    double hash_rate; // TH/s
 
     double asia_coal = .60;
     double asia_crude_oil = .18;
@@ -41,6 +42,10 @@ public:
     double europe_renewables = .32;
     double europe_nuclear = .25;
     double europe_gas = .19;
+
+    void setHashRate(double value) {
+        hash_rate = value;
+    }
 
     void setAsicPower(double value){
         asic_power= value / 3600;
@@ -77,8 +82,7 @@ public:
 PowerSource powerSource;
 
 // INITIAL VALUES
-double hashRate = 35036000; // TH/s
-double difficulty = hashRate * 512; // avg of TH per block
+double difficulty; // avg of TH per block
 double averageFootprint; // kg CO2 / Ws
 double carbonFootprintPerSecTotal = 0;
 
@@ -138,7 +142,8 @@ class HashRateProcess : public Process {
             Wait(Exponential(HOUR * 24));
             coeficient = Random() * changePercent;
             coeficient += Random() <= 0.4 ? -changePercent : 0;
-            hashRate += hashRate * coeficient / 100;
+            powerSource.hash_rate += powerSource.hash_rate * coeficient / 100;
+            // cout << hashRate << endl;
         }
     }
 };
@@ -158,7 +163,7 @@ class BlockProcess : public Process {
         while (1) {
             transactions = BLOCK_CAPACITY - block.Free();
             Leave(block, transactions);
-            timeTakenToCreateBlock = difficulty / hashRate;
+            timeTakenToCreateBlock = difficulty / powerSource.hash_rate;
             Wait(timeTakenToCreateBlock);
             if (blockCount > 0 && blockCount % 2016 == 0) {
                 double timeTakenToCreate2016Blocks = Time - timeAt2016BlocksCreated;
@@ -171,7 +176,7 @@ class BlockProcess : public Process {
     }
 
     void CalculateConsumption() {
-        double consumptionPerSec = (hashRate / powerSource.asic_hash_power) * powerSource.asic_power;
+        double consumptionPerSec = (powerSource.hash_rate / powerSource.asic_hash_power) * powerSource.asic_power;
         double consumptionPerBlock = consumptionPerSec * timeTakenToCreateBlock;
         double consumptionPerTransaction = consumptionPerBlock / transactions;
 
@@ -191,6 +196,7 @@ class BlockProcess : public Process {
 enum power_source {
     ASIC_POWER,
     ASIC_HASH_POWER,
+    HASH_RATE,
     ASIA_ENERGY_PRODUCTION,
     AMERICA_ENERGY_PRODUCTION,
     EUROPE_ENERGY_PRODUCTION,
@@ -221,20 +227,13 @@ void assignValueByIndex(int index, double value) {
     }else if(index==ASIC_HASH_POWER){
         powerSource.setAsicHashPower(value);
         return;
+    } else if (index == HASH_RATE) {
+        powerSource.hash_rate = value;
+        return;
     }
 
     value /= 100;
     switch (index) {
-        case ASIA_ENERGY_PRODUCTION:
-            powerSource.asia_production = value;
-            break;
-        case AMERICA_ENERGY_PRODUCTION:
-            powerSource.america_production = value;
-            break;
-        case EUROPE_ENERGY_PRODUCTION:
-            powerSource.europe_production = value;
-            break;
-
         case ASIA_COAL:
             powerSource.asia_coal = value;
             break;
@@ -295,6 +294,7 @@ void parseArgs(int argc, char **argv) {
             //ASIC PARAMETERS
             {"asic_power",                required_argument, 0, 0},
             {"asic_hash_power",           required_argument, 0, 0},
+            {"hash_rate",                 required_argument, 0, 0},
 
             //ASIA
             {"asia_coal",                 required_argument, 0, 0},
@@ -322,7 +322,7 @@ void parseArgs(int argc, char **argv) {
     while ((c = getopt_long(argc, argv, "a:e:", options, &option_index)) != -1) {
         char *error = nullptr;
         double value = strtod(optarg, &error);
-        if (option_index != ASIC_POWER && option_index != ASIC_HASH_POWER) {
+        if (option_index != ASIC_POWER && option_index != ASIC_HASH_POWER && option_index != HASH_RATE) {
             if (value < 0 || value > 100) {
                 fprintf(stderr, "Value can be in range (0,100)%%\n");
                 exit(EXIT_FAILURE);
@@ -339,6 +339,7 @@ int main(int argc, char **argv) {
 
     powerSource.setAsicHashPower(4.2438);
     powerSource.setAsicPower(1535.62);
+    powerSource.setHashRate(35036000);
 
     averageFootprint =
         powerSource.getCoalTotal() * carbon_footprint_of_coal +
@@ -348,6 +349,8 @@ int main(int argc, char **argv) {
         powerSource.getGasTotal() * carbon_footprint_of_gas;
 
     parseArgs(argc, argv);
+
+    difficulty = powerSource.hash_rate * 512;
 
     Init(0, YEAR);
 
