@@ -22,7 +22,7 @@ public:
     double america_production = .15;
 
     double asic_power; // Ws
-    double asic_hash_power = 28.0; //TH/s
+    double asic_hash_power; //TH/s
 
     double asia_coal = .60;
     double asia_crude_oil = .18;
@@ -77,7 +77,7 @@ public:
 PowerSource powerSource;
 
 // INITIAL VALUES
-double hashRate = 88092000; // TH/s
+double hashRate = 35036000; // TH/s
 double difficulty = hashRate * 512; // avg of TH per block
 double averageFootprint; // kg CO2 / Ws
 double carbonFootprintPerSecTotal = 0;
@@ -128,35 +128,16 @@ class HashRateGenerator : public Process {
     }
 };
 
-class CarbonFootprintProcess : public Process {
-
-    void Behavior() {
-        while (1) {
-            UpdateAverageFootprint();
-            Wait(TWO_WEEKS);
-        }
-    }
-
-    void UpdateAverageFootprint() {
-        averageFootprint =
-            powerSource.getCoalTotal() * carbon_footprint_of_coal +
-            powerSource.getCrudeOilTotal() * carbon_footprint_of_crude_oil +
-            powerSource.getRenewablesTotal() * carbon_footprint_of_renewables +
-            powerSource.getNuclearTotal() * carbon_footprint_of_nuclear +
-            powerSource.getGasTotal() * carbon_footprint_of_gas;
-    }
-};
-
 class HashRateProcess : public Process {
 
     void Behavior() {
-        double change_percent;
+        double changePercent;
         double coeficient;
         while (1) {
-            change_percent = Exponential(1.5);
+            changePercent = Exponential(1.5);
             Wait(Exponential(HOUR * 24));
-            coeficient = Random() * change_percent;
-            coeficient += Random() <= 0.4 ? -change_percent : 0;
+            coeficient = Random() * changePercent;
+            coeficient += Random() <= 0.4 ? -changePercent : 0;
             hashRate += hashRate * coeficient / 100;
         }
     }
@@ -175,36 +156,34 @@ class BlockProcess : public Process {
     void Behavior() {
         Enter(block, 2200);
         while (1) {
-            double timeAtTheBeginningOfBlock = Time;
             transactions = BLOCK_CAPACITY - block.Free();
             Leave(block, transactions);
-            const double time_to_calculate_block = difficulty / hashRate;
-            Wait(time_to_calculate_block);
+            timeTakenToCreateBlock = difficulty / hashRate;
+            Wait(timeTakenToCreateBlock);
             if (blockCount > 0 && blockCount % 2016 == 0) {
                 double timeTakenToCreate2016Blocks = Time - timeAt2016BlocksCreated;
                 timeAt2016BlocksCreated = Time;
                 difficulty *= TWO_WEEKS / timeTakenToCreate2016Blocks;
             }
             blockCount++;
-            timeTakenToCreateBlock = Time - timeAtTheBeginningOfBlock;
             CalculateConsumption();
         }
     }
 
     void CalculateConsumption() {
-        double consumption_per_sec = (hashRate / powerSource.asic_hash_power) * powerSource.asic_power;
-        double consumption_per_block = consumption_per_sec * timeTakenToCreateBlock;
-        double consumption_per_transaction = consumption_per_block / transactions;
+        double consumptionPerSec = (hashRate / powerSource.asic_hash_power) * powerSource.asic_power;
+        double consumptionPerBlock = consumptionPerSec * timeTakenToCreateBlock;
+        double consumptionPerTransaction = consumptionPerBlock / transactions;
 
-        double carbon_footprint_per_sec = consumption_per_sec * averageFootprint;
-        double carbon_footprint_per_block = consumption_per_block * averageFootprint;
-        double carbon_footprint_per_transaction = consumption_per_transaction * averageFootprint;
+        double carbonFootprintPerSec = consumptionPerSec * averageFootprint;
+        double carbonFootprintPerBlock = consumptionPerBlock * averageFootprint;
+        double carbonFootprintPerTransaction = consumptionPerTransaction * averageFootprint;
 
-        carbonFootprintPerSecTotal += carbon_footprint_per_sec;
+        carbonFootprintPerSecTotal += carbonFootprintPerSec;
 
-        carbonFootprintPerSecond(carbon_footprint_per_sec);
-        transactionCarbonFootprint(carbon_footprint_per_transaction);
-        blockCarbonFootprint(carbon_footprint_per_block);
+        carbonFootprintPerSecond(carbonFootprintPerSec);
+        transactionCarbonFootprint(carbonFootprintPerTransaction);
+        blockCarbonFootprint(carbonFootprintPerBlock);
 
     }
 };
@@ -358,14 +337,20 @@ void parseArgs(int argc, char **argv) {
 
 int main(int argc, char **argv) {
 
-    powerSource.setAsicHashPower(13);
-    powerSource.setAsicPower(2000.0);
+    powerSource.setAsicHashPower(4.2438);
+    powerSource.setAsicPower(1535.62);
+
+    averageFootprint =
+        powerSource.getCoalTotal() * carbon_footprint_of_coal +
+        powerSource.getCrudeOilTotal() * carbon_footprint_of_crude_oil +
+        powerSource.getRenewablesTotal() * carbon_footprint_of_renewables +
+        powerSource.getNuclearTotal() * carbon_footprint_of_nuclear +
+        powerSource.getGasTotal() * carbon_footprint_of_gas;
 
     parseArgs(argc, argv);
 
     Init(0, YEAR);
 
-    (new CarbonFootprintProcess)->Activate();
     (new TransactionGenerator)->Activate();
     (new BlockProcess)->Activate();
     (new HashRateProcess)->Activate();
@@ -377,6 +362,7 @@ int main(int argc, char **argv) {
     blockCarbonFootprint.Output();
 
     double annualCarbonFootprintTotal = (carbonFootprintPerSecTotal / blockCount) * YEAR / 1000000000;
+
     cout << "Annual carbon footprint: " << annualCarbonFootprintTotal << " Mt CO2" << endl;
     return 0;
 }
