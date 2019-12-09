@@ -84,8 +84,8 @@ public:
     }
 
     void runExperiment2(){
-        asia_coal=.1;
-        asia_renewables=.64;
+        asia_coal=.50;
+        asia_renewables=.24;
     }
 
     void runExperiment3(){
@@ -113,12 +113,11 @@ unsigned long blockCount = 0;
 
 const double scale = 1.0 / (1000 * HOUR);
 
-
-const double carbon_footprint_of_coal = scale * 993;
-const double carbon_footprint_of_crude_oil = scale * 893;
-const double carbon_footprint_of_renewables = scale * 642;
-const double carbon_footprint_of_nuclear = scale * 62;
-const double carbon_footprint_of_gas = scale * 455;
+const double carbon_footprint_of_coal = scale * 1001;
+const double carbon_footprint_of_crude_oil = scale * 840;
+const double carbon_footprint_of_renewables = scale * 22.4;
+const double carbon_footprint_of_nuclear = scale * 16;
+const double carbon_footprint_of_gas = scale * 469;
 
 // queue of transactions before being added to a block
 Store block("Block", BLOCK_CAPACITY);
