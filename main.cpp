@@ -77,6 +77,19 @@ public:
     double getGasTotal() {
         return asia_production * asia_gas + america_production * america_gas + europe_production * europe_gas;
     }
+
+    void runExperiment1(){
+
+    }
+
+    void runExperiment2(){
+        asia_coal=0.1;
+        asia_renewables=0.64;
+    }
+
+    void runExperiment3(){
+
+    }
 };
 
 PowerSource powerSource;
@@ -214,7 +227,11 @@ enum power_source {
     EUROPE_CRUDE_OIL,
     EUROPE_RENEWABLES,
     EUROPE_NUCLEAR,
-    EUROPE_GAS
+    EUROPE_GAS,
+
+    EXPERIMENT_1,
+    EXPERIMENT_2,
+    EXPERIMENT_3
 };
 
 void assignValueByIndex(int index, double value) {
@@ -313,10 +330,25 @@ void parseArgs(int argc, char **argv) {
             {"europe_renwables",          required_argument, 0, 0},
             {"europe_nuclear",            required_argument, 0, 0},
             {"europe_gas",                required_argument, 0, 0},
+            {"experiment1",               no_argument, 0, 0},
+            {"experiment2",               no_argument, 0, 0},
+            {"experiment3",               no_argument, 0, 0},
             {NULL, 0, NULL,                                     0}
     };
 
     while ((c = getopt_long(argc, argv, "a:e:", options, &option_index)) != -1) {
+        
+        if(option_index==EXPERIMENT_1){
+            powerSource.runExperiment1();
+            return;
+        }else if(option_index==EXPERIMENT_2){
+            powerSource.runExperiment2();
+            return;
+        }else if(option_index==EXPERIMENT_3){
+            powerSource.runExperiment3();
+            return;
+        }
+
         char *error = nullptr;
         double value = strtod(optarg, &error);
         if (option_index != ASIC_POWER && option_index != ASIC_HASH_POWER && option_index != HASH_RATE) {
@@ -337,7 +369,7 @@ int main(int argc, char **argv) {
     powerSource.setAsicHashPower(4.2438);
     powerSource.setAsicPower(1535.62);
     powerSource.setHashRate(35036000);
-    
+
     parseArgs(argc, argv);
 
     averageFootprint =
