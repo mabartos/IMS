@@ -8,6 +8,7 @@ using namespace std;
 
 #define BLOCK_CAPACITY 2400
 #define BLOCK_IDEAL_COUNT 2016
+#define HOUR 60 * 60
 #define TWO_WEEKS 60 * 60 * 24 * 14
 #define YEAR 60 * 60 * 24 * 365
 
@@ -20,8 +21,8 @@ public:
     double europe_production = .17;
     double america_production = .15;
 
-    double asic_power = 1596.0 / 3600;
-    double asic_hash_power = 28;//TH/s
+    double asic_power; // Ws
+    double asic_hash_power = 28.0; //TH/s
 
     double asia_coal = .60;
     double asia_crude_oil = .18;
@@ -42,7 +43,7 @@ public:
     double europe_gas = .19;
 
     void setAsicPower(double value){
-        asic_power=value/3600;
+        asic_power= value / 3600;
     }
 
     void setAsicHashPower(double value){
@@ -86,13 +87,14 @@ unsigned long blockCount = 0;
 
 // kg CO2 / Ws
 
-const double milli = .001;
+const double scale = 1.0 / (1000 * HOUR);
 
-const double carbon_footprint_of_coal = milli * 993 / 3600;
-const double carbon_footprint_of_crude_oil = milli * 893 / 3600;
-const double carbon_footprint_of_renewables = milli * 642 / 3600;
-const double carbon_footprint_of_nuclear = milli * 62 / 3600;
-const double carbon_footprint_of_gas = milli * 455 / 3600;
+
+const double carbon_footprint_of_coal = scale * 993;
+const double carbon_footprint_of_crude_oil = scale * 893;
+const double carbon_footprint_of_renewables = scale * 642;
+const double carbon_footprint_of_nuclear = scale * 62;
+const double carbon_footprint_of_gas = scale * 455;
 
 // queue of transactions before being added to a block
 Store block("Block", BLOCK_CAPACITY);
@@ -115,7 +117,7 @@ class TransactionGenerator : public Event {
     void Behavior() {
         transactionCount++;
         (new Transaction)->Activate();
-        Activate(Time + Uniform(0.3, 2.0));
+        Activate(Time + 1);
     }
 };
 
@@ -152,7 +154,7 @@ class HashRateProcess : public Process {
         double coeficient;
         while (1) {
             change_percent = Exponential(1.5);
-            Wait(Exponential(3600 * 24));
+            Wait(Exponential(HOUR * 24));
             coeficient = Random() * change_percent;
             coeficient += Random() <= 0.4 ? -change_percent : 0;
             hashRate += hashRate * coeficient / 100;
@@ -355,7 +357,12 @@ void parseArgs(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+
+    powerSource.setAsicHashPower(13);
+    powerSource.setAsicPower(2000.0);
+
     parseArgs(argc, argv);
+
     Init(0, YEAR);
 
     (new CarbonFootprintProcess)->Activate();
@@ -370,7 +377,7 @@ int main(int argc, char **argv) {
     blockCarbonFootprint.Output();
 
     double annualCarbonFootprintTotal = (carbonFootprintPerSecTotal / blockCount) * YEAR / 1000000000;
-    cout << "Annual carbon footprint: " << annualCarbonFootprintTotal<<endl;
+    cout << "Annual carbon footprint: " << annualCarbonFootprintTotal << " Mt CO2" << endl;
     return 0;
 }
 
